@@ -10,4 +10,5 @@ func main(){
 	r.GET("/",func(ctx *gin.Context) {
 		telegram.HandleIncomingMessage(ctx)
 	})
+	r.Run()
 }
