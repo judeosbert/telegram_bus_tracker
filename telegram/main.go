@@ -12,14 +12,21 @@ import (
 )
 
 func HandleIncomingMessage(context *gin.Context) {
-	var update Update
-	err := context.BindJSON(&update)
+	// var update map[string]map[string]interface{}
+	// err := context.BindJSON(&update)
+	// if err != nil {
+	// 	fmt.Printf("error %s", err.Error())
+	// 	return
+	// }
+	// fmt.Println("Body %s", update["message"]["text"])
+	update := &Update{}
+	err := context.Bind(update)
 	if err != nil {
 		sendMessageToTelegramChat(update.Message.Chat.ID, err.Error())
 		context.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-	msg, err := handleMessage(update)
+	msg, err := handleMessage(*update)
 	if err != nil {
 		sendMessageToTelegramChat(update.Message.Chat.ID, err.Error())
 		return
@@ -42,7 +49,7 @@ func sendMessageToTelegramChat(chatId int, text string) (string, error) {
 		telegramEp,
 		url.Values{
 			"chat_id": {strconv.Itoa(chatId)},
-			text:      {text},
+			"text":      {text},
 		})
 
 	if err != nil {
