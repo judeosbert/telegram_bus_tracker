@@ -7,7 +7,7 @@ import (
 
 func main(){
 	r := gin.Default()
-	r.GET("/",func(ctx *gin.Context) {
+	r.POST("/",func(ctx *gin.Context) {
 		telegram.HandleIncomingMessage(ctx)
 	})
 	r.Run()
