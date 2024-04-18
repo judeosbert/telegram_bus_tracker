@@ -1,11 +1,10 @@
 package telegram
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -22,49 +21,104 @@ func HandleIncomingMessage(context *gin.Context) {
 	update := &Update{}
 	err := context.Bind(update)
 	if err != nil {
-		sendMessageToTelegramChat(update.Message.Chat.ID, err.Error())
+		replyWithText(update.Message.Chat.ID, err.Error())
 		context.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 	msg, err := handleMessage(*update)
 	if err != nil {
-		sendMessageToTelegramChat(update.Message.Chat.ID, err.Error())
+		replyWithText(update.Message.Chat.ID, err.Error())
 		return
 	}
 
-	sendMessageToTelegramChat(update.Message.From.ID, msg.Text)
+	sendMessageToTelegramChat(*msg)
 
 }
 
-func handleMessage(update Update) (*Message, error) {
-	return &Message{
-		Text: "Sample",
-		Chat: update.Message.Chat,
+func handleMessage(update Update) (*ReplyMessage, error) {
+	keyboard := [][]KeyboardButton{
+		{KeyboardButton{
+			Text:            "Button 1",
+			RequestLocation: false,
+		},
+		},
+		{
+			KeyboardButton{
+				Text:            "Button For Location",
+				RequestLocation: true,
+			},
+		},
+	}
+
+	return &ReplyMessage{
+		ChatId:  strconv.Itoa(update.Message.Chat.ID),
+		Message: "Sample Message",
+		ReplyMarkup: ReplyKeyboardMarkup{
+			Keyboard:              keyboard,
+			OneTimeKeyboard:       true,
+			InputFieldPlaceholder: "",
+			Selective:             false,
+		},
 	}, nil
 }
 
-func sendMessageToTelegramChat(chatId int, text string) (string, error) {
+func replyWithKeyboard(chatId int, keyboardOptions ReplyKeyboardMarkup, message string) {
+	sendMessageToTelegramChat(ReplyMessage{
+		ChatId:      strconv.Itoa(chatId),
+		Message:     message,
+		ReplyMarkup: keyboardOptions,
+	})
+}
+
+func replyWithText(chatId int, text string) (string, error) {
+	return sendMessageToTelegramChat(ReplyMessage{
+		ChatId:  strconv.Itoa(chatId),
+		Message: text,
+	})
+}
+
+func sendMessageToTelegramChat(reply ReplyMessage) (string, error) {
 	telegramEp := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", "7073126054:AAEI729OK0391qRMrXzpojWqB-5ROuwPi_I")
-	response, err := http.PostForm(
-		telegramEp,
-		url.Values{
-			"chat_id": {strconv.Itoa(chatId)},
-			"text":      {text},
-		})
+	// response, err := http.PostForm(
+	// 	telegramEp,
 
+	// )
+
+	// if err != nil {
+	// 	log.Printf("Failed to post message to chat %s", err.Error())
+	// 	return "", err
+	// }
+
+	// defer response.Body.Close()
+
+	// bodyBytes, err := ioutil.ReadAll(response.Body)
+	// if err != nil {
+	// 	log.Printf("error parsing telegram %s", err.Error())
+	// 	return "", err
+	// }
+	// bodyString := string(bodyBytes)
+	// log.Printf("Body of telegram message post %s", bodyString)
+	// return bodyString, nil
+	buf, err := json.Marshal(reply)
 	if err != nil {
-		log.Printf("Failed to post message to chat %s", err.Error())
 		return "", err
 	}
 
-	defer response.Body.Close()
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
+	r, err := http.NewRequest("POST", telegramEp, bytes.NewBuffer(buf))
 	if err != nil {
-		log.Printf("error parsing telegram %s", err.Error())
 		return "", err
 	}
-	bodyString := string(bodyBytes)
-	log.Printf("Body of telegram message post %s", bodyString)
-	return bodyString, nil
+	client := &http.Client{}
+	res, err := client.Do(r)
+	if err != nil {
+		return "", err
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode == 200 {
+		return "success", nil
+	}
+
+	return "error", nil
 }
