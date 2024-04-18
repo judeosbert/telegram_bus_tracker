@@ -13,7 +13,7 @@ func main() {
 	r := gin.Default()
 	r.POST("/", func(ctx *gin.Context) {
 		body, _ := io.ReadAll(ctx.Request.Body)
-		fmt.Printf("incoming body %s",string(body))
+		fmt.Printf("incoming body   %s",string(body))
 
 		ctx.Request.Body = io.NopCloser(bytes.NewReader(body))
 		telegram.HandleIncomingMessage(ctx)
