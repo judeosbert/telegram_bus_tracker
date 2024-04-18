@@ -1,20 +1,30 @@
 package telegram
 
 type Update struct {
-	UpdateId int `json:"update_id"`
 	Message Message `json:"message"`
 }
 
 type Message struct {
-	Text string `json:"text"`
-	Chat Chat `json:"chat"`
+	MessageID int  `json:"message_id"`
+	From      From   `json:"from"`      
+	Chat      Chat   `json:"chat"`      
+	Date      int  `json:"date"`      
+	Text      string `json:"text"`      
 }
 
 type Chat struct {
-	Id int `json:"id"`
+	ID        int  `json:"id"`        
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"` 
+	Username  string `json:"username"`  
+	Type      string `json:"type"`      
 }
 
-type Response struct {
-	Chat Chat
-	Message Message
+type From struct {
+	ID           int  `json:"id"`           
+	IsBot        bool   `json:"is_bot"`       
+	FirstName    string `json:"first_name"`   
+	LastName     string `json:"last_name"`    
+	Username     string `json:"username"`     
+	LanguageCode string `json:"language_code"`
 }

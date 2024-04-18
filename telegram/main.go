@@ -15,17 +15,17 @@ func HandleIncomingMessage(context *gin.Context) {
 	var update Update
 	err := context.BindJSON(&update)
 	if err != nil {
-		sendMessageToTelegramChat(update.Message.Chat.Id, err.Error())
+		sendMessageToTelegramChat(update.Message.Chat.ID, err.Error())
 		context.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 	msg, err := handleMessage(update)
 	if err != nil {
-		sendMessageToTelegramChat(update.Message.Chat.Id, err.Error())
+		sendMessageToTelegramChat(update.Message.Chat.ID, err.Error())
 		return
 	}
 
-	sendMessageToTelegramChat(update.Message.Chat.Id, msg.Text)
+	sendMessageToTelegramChat(update.Message.From.ID, msg.Text)
 
 }
 
