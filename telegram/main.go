@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/judeosbert/bus_tracker_bot/telegram/buttons"
 )
 
 func HandleIncomingMessage(context *gin.Context) {
@@ -36,19 +37,9 @@ func HandleIncomingMessage(context *gin.Context) {
 }
 
 func handleMessage(update Update) (*ReplyMessage, error) {
-	keyboard := [][]KeyboardButton{
-		{KeyboardButton{
-			Text:            "Button 1",
-			RequestLocation: false,
-		},
-		},
-		{
-			KeyboardButton{
-				Text:            "Button For Location",
-				RequestLocation: true,
-			},
-		},
-	}
+	keyboard := make([]buttons.KeyboardButton,0)
+	keyboard = append(keyboard, buttons.BasicButton("Sample Button"))
+	keyboard = append(keyboard, buttons.RequestGeoButton("Send Location"))
 
 	return &ReplyMessage{
 		ChatId:  strconv.Itoa(update.Message.Chat.ID),

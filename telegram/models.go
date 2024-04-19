@@ -1,5 +1,7 @@
 package telegram
 
+import "github.com/judeosbert/bus_tracker_bot/telegram/buttons"
+
 type Update struct {
 	Message Message `json:"message"`
 }
@@ -39,20 +41,20 @@ type ReplyMessage struct {
 	InvertMedia bool `json:"invert_media omitempty"`
 	ChatId string `json:"chat_id"`
 	Message string `json:"message omitempty"`
-	ReplyMarkup ReplyKeyboardMarkup `json:"reply_markup"`
+	ReplyMarkup ReplyKeyboardMarkup `json:"reply_markup omitempty"`
 }
 
 type ReplyKeyboardMarkup struct {
-	Keyboard [][]KeyboardButton `json:"keyboard"`
-	IsPresistent bool `json:"is_persistent"`
-	ResizeKeyboard bool `json:"resize_keyboard"` 
-	OneTimeKeyboard bool `json:"one_time_keyboard"`
-	InputFieldPlaceholder string `json:"input_field_placeholder"`
+	Keyboard []buttons.KeyboardButton `json:"rows"`
+	IsPresistent bool `json:"persistent"`
+	ResizeKeyboard bool `json:"resize"` 
+	OneTimeKeyboard bool `json:"single_use"`
+	InputFieldPlaceholder string `json:"placeholder"`
 	Selective bool `json:"selective"`
 }
 
-type KeyboardButton struct {
-	Text string `json:"text"`
-	RequestLocation bool `json:"request_location"`
-}
+
+
+
+
 
