@@ -23,13 +23,13 @@ func main() {
 		panic(err)
 	}
 
-	err = bot.SetWebhook(&telego.SetWebhookParams{
-		URL: "https://telegrambustracker-production.up.railway.app/bot" + botToken,
-	})
-	if err != nil {
-		log.Printf("Failed to set webhook info %s", err.Error())
-		return
-	}
+	// err = bot.SetWebhook(&telego.SetWebhookParams{
+	// 	URL: "https://telegrambustracker-production.up.railway.app/bot" + botToken,
+	// })
+	// if err != nil {
+	// 	log.Printf("Failed to set webhook info %s", err.Error())
+	// 	return
+	// }
 
 	info, err := bot.GetWebhookInfo()
 	if err != nil {
