@@ -94,6 +94,7 @@ func sendMessageToTelegramChat(reply ReplyMessage) (string, error) {
 		log.Printf("Response Body %s",resBuf)
 		return string(resBuf) , nil
 	}
-	log.Printf("Failed to send message to telegram. Unknown err")
+
+	log.Printf("Failed to send message to telegram. Response %s %s",res.StatusCode,res.Status)
 	return "error", errors.New("failed to send request:Unknown reason")
 }
