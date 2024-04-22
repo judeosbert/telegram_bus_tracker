@@ -31,15 +31,15 @@ func main() {
 	// 	return
 	// }
 
-	info, err := bot.GetWebhookInfo()
-	if err != nil {
-		log.Printf("Failed to get webhook info %s", err.Error())
-		return
-	}
-	log.Printf("Webhook Info %+v/n", info)
+	// info, err := bot.GetWebhookInfo()
+	// if err != nil {
+	// 	log.Printf("Failed to get webhook info %s", err.Error())
+	// 	return
+	// }
+	// log.Printf("Webhook Info %+v/n", info)
 
 	go func() {
-		bot.StartWebhook(":8080")
+		bot.StartWebhook(":443")
 	}()
 	defer func() {
 		bot.StopWebhook()
