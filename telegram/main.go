@@ -3,6 +3,7 @@ package telegram
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -104,12 +105,17 @@ func sendMessageToTelegramChat(reply ReplyMessage) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	defer res.Body.Close()
+	resBuf := []byte{}
+	_,err = res.Body.Read(resBuf)
+	if err != nil {
+		return "",err
+	}
+	
 
 	if res.StatusCode == 200 {
-		return "success", nil
+		return string(resBuf) , nil
 	}
 
-	return "error", nil
+	return "error", errors.New("failed to send request:Unknown reason")
 }
