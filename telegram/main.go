@@ -55,14 +55,6 @@ func handleMessage(update Update) (*ReplyMessage, error) {
 	}, nil
 }
 
-func replyWithKeyboard(chatId int, keyboardOptions ReplyKeyboardMarkup, message string) {
-	sendMessageToTelegramChat(ReplyMessage{
-		ChatId:      strconv.Itoa(chatId),
-		Message:     message,
-		ReplyMarkup: keyboardOptions,
-	})
-}
-
 func replyWithText(chatId int, text string) (string, error) {
 	return sendMessageToTelegramChat(ReplyMessage{
 		ChatId:  strconv.Itoa(chatId),
@@ -72,44 +64,28 @@ func replyWithText(chatId int, text string) (string, error) {
 
 func sendMessageToTelegramChat(reply ReplyMessage) (string, error) {
 	telegramEp := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", "7073126054:AAEI729OK0391qRMrXzpojWqB-5ROuwPi_I")
-	// response, err := http.PostForm(
-	// 	telegramEp,
-
-	// )
-
-	// if err != nil {
-	// 	log.Printf("Failed to post message to chat %s", err.Error())
-	// 	return "", err
-	// }
-
-	// defer response.Body.Close()
-
-	// bodyBytes, err := ioutil.ReadAll(response.Body)
-	// if err != nil {
-	// 	log.Printf("error parsing telegram %s", err.Error())
-	// 	return "", err
-	// }
-	// bodyString := string(bodyBytes)
-	// log.Printf("Body of telegram message post %s", bodyString)
-	// return bodyString, nil
 	buf, err := json.Marshal(reply)
 	if err != nil {
+		log.Printf("Failed to parse to json %s"  ,err.Error())
 		return "", err
 	}
 
 	r, err := http.NewRequest("POST", telegramEp, bytes.NewBuffer(buf))
 	if err != nil {
+		log.Printf("Failed to create new post request %s",err.Error())
 		return "", err
 	}
 	client := &http.Client{}
 	res, err := client.Do(r)
 	if err != nil {
+		log.Printf("Failed to execute new request %s",err.Error())
 		return "", err
 	}
 	defer res.Body.Close()
 	resBuf := []byte{}
 	_,err = res.Body.Read(resBuf)
 	if err != nil {
+		log.Printf("Failed to read response body %s",err.Error())
 		return "",err
 	}
 	
@@ -118,6 +94,6 @@ func sendMessageToTelegramChat(reply ReplyMessage) (string, error) {
 		log.Printf("Response Body %s",resBuf)
 		return string(resBuf) , nil
 	}
-
+	log.Printf("Failed to send message to telegram. Unknown err")
 	return "error", errors.New("failed to send request:Unknown reason")
 }
