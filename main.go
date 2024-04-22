@@ -38,18 +38,19 @@ func main() {
 	}
 	log.Printf("Webhook Info %+v/n", info)
 
-	updates, err:= bot.UpdatesViaWebhook("/bot" + bot.Token())
-	if(err != nil ){
-		log.Printf("Failed to get updates via hook %s",err.Error())
-		return
-	}
-
 	go func() {
 		bot.StartWebhook(":8080")
 	}()
 	defer func() {
 		bot.StopWebhook()
 	}()
+
+	updates, err := bot.UpdatesViaWebhook("/bot" + bot.Token())
+	if err != nil {
+		log.Printf("Failed to get updates via hook %s", err.Error())
+		return
+	}
+
 	for update := range updates {
 		if update.Message == nil {
 			log.Println("Update is Empty")
