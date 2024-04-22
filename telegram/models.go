@@ -41,7 +41,7 @@ type ReplyMessage struct {
 	InvertMedia bool `json:"invert_media omitempty"`
 	ChatId string `json:"chat_id"`
 	Message string `json:"message omitempty"`
-	ReplyMarkup ReplyKeyboardMarkup `json:"reply_markup omitempty"`
+	ReplyMarkup ReplyKeyboardMarkup `json:"replyKeyboardMarkup omitempty"`
 }
 
 type ReplyKeyboardMarkup struct {
