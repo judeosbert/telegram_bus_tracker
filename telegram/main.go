@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -114,6 +115,7 @@ func sendMessageToTelegramChat(reply ReplyMessage) (string, error) {
 	
 
 	if res.StatusCode == 200 {
+		log.Printf("Response Body %s",resBuf)
 		return string(resBuf) , nil
 	}
 
