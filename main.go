@@ -56,6 +56,7 @@ func main() {
 	bh.HandleMessage(func(bot *telego.Bot, message telego.Message) {
 		botEngine.PostUpdate(message)
 	})
+
 	
 	go func(){
 		for msg := range botEngine.OutChan(){

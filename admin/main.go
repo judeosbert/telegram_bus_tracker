@@ -23,7 +23,7 @@ func (a *adminUtils) SendForVerification(trip NewTripInfo) {
 	}
 	msg := telego.SendMessageParams{
 		ChatID: a.admin,
-		Text:   fmt.Sprintf("New Trip For Verification:\n PNR:%s\n Service Provider:%s ", trip.Pnr, trip.ServiceProvider),
+		Text:   fmt.Sprintf("New Trip For Verification:\n PNR:%s\n TripCode:%s\n Service Provider:%s ", trip.Pnr, trip.TripCode,trip.ServiceProvider),
 		ReplyMarkup: &telego.InlineKeyboardMarkup{
 			InlineKeyboard: [][]telego.InlineKeyboardButton{
 				{
