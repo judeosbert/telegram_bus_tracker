@@ -2,9 +2,14 @@ package main
 
 import (
 	"log"
+	"time"
 
+	"github.com/judeosbert/bus_tracker_bot/admin"
+	botengine "github.com/judeosbert/bus_tracker_bot/bot_engine"
+	addpnr "github.com/judeosbert/bus_tracker_bot/handlers/add_pnr"
+	"github.com/judeosbert/bus_tracker_bot/state"
 	"github.com/mymmrac/telego"
-	"github.com/mymmrac/telego/telegoutil"
+	th "github.com/mymmrac/telego/telegohandler"
 )
 
 func main() {
@@ -17,55 +22,49 @@ func main() {
 	// 		telegram.HandleIncomingMessage(ctx)
 	// 	})
 	// 	r.Run()
+
+	stateSaver := state.NewStateSaver()
+	
 	botToken := "7073126054:AAEI729OK0391qRMrXzpojWqB-5ROuwPi_I"
+	
 	bot, err := telego.NewBot(botToken, telego.WithDefaultDebugLogger())
 	if err != nil {
 		panic(err)
 	}
+	admin := admin.NewAdminUtils(bot)
+	botEngine := botengine.NewBotEnginer(stateSaver,admin)
 
-	// err = bot.SetWebhook(&telego.SetWebhookParams{
-	// 	URL: "https://telegrambustracker-production.up.railway.app/bot" + botToken,
-	// })
-	// if err != nil {
-	// 	log.Printf("Failed to set webhook info %s", err.Error())
-	// 	return
-	// }
-
-	// info, err := bot.GetWebhookInfo()
-	// if err != nil {
-	// 	log.Printf("Failed to get webhook info %s", err.Error())
-	// 	return
-	// }
-	// log.Printf("Webhook Info %+v/n", info)
-
-	go func() {
-		bot.StartWebhook(":443")
-	}()
-	defer func() {
-		bot.StopWebhook()
-	}()
-
-	updates, err := bot.UpdatesViaWebhook("/bot" + bot.Token())
+	updates, err := bot.UpdatesViaLongPolling(
+		&telego.GetUpdatesParams{
+			Offset:  0, // Will be automatically updated by UpdatesViaLongPolling
+			Timeout: 8, // Can be set instead of using WithLongPollingUpdateInterval (default, recommended way)
+		}, telego.WithLongPollingUpdateInterval(time.Second*0), telego.WithLongPollingRetryTimeout(time.Second*8), telego.WithLongPollingBuffer(100))
 	if err != nil {
-		log.Printf("Failed to get updates via hook %s", err.Error())
-		return
+		panic(err)
 	}
 
-	for update := range updates {
-		if update.Message == nil {
-			log.Println("Update is Empty")
-			continue
-		}
-		chatId := update.Message.Chat.ID
-		sentMessage, err := bot.SendMessage(telegoutil.Message(
-			telegoutil.ID(chatId),
-			"Hello World",
-		))
-		if err != nil {
-			log.Printf("Failed to send message %s", err.Error())
-			continue
-		}
-		log.Printf("Sent Message: %v\n", sentMessage)
-	}
+	defer bot.StopLongPolling()
 
+	bh, err := th.NewBotHandler(bot, updates)
+	if err != nil {
+		panic(err)
+	}
+	defer bh.Stop()
+	bh.Handle(func(bot *telego.Bot, update telego.Update) {
+		addpnr.Handler(bot,update,stateSaver)
+	},addpnr.Predicate)
+	bh.HandleMessage(func(bot *telego.Bot, message telego.Message) {
+		botEngine.PostUpdate(message)
+	})
+	
+	go func(){
+		for msg := range botEngine.OutChan(){
+			log.Println("Sending message out from channel %+v\n",msg)
+			bot.SendMessage(&msg)
+		}
+	}()
+	go func(){
+		botEngine.Start()
+	}()
+	bh.Start()
 }
