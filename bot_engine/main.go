@@ -7,15 +7,15 @@ import (
 )
 
 type botEngine struct {
-	admin admin.AdminUtils
-	handlers   [](func(telego.Message,state.Saver,admin.AdminUtils) (*telego.SendMessageParams, error))
+	admin      admin.AdminUtils
+	handlers   [](func(telego.Message, state.Saver, admin.AdminUtils) ([]*telego.SendMessageParams, error))
 	outChan    chan telego.SendMessageParams
 	msgChan    chan telego.Message
 	stateSaver state.Saver
 }
 
 // RegisterHandler implements BotEngine.
-func (b *botEngine) RegisterHandler(h func(telego.Message,state.Saver,admin.AdminUtils) (*telego.SendMessageParams, error)) {
+func (b *botEngine) RegisterHandler(h func(telego.Message, state.Saver, admin.AdminUtils) ([]*telego.SendMessageParams, error)) {
 	b.handlers = append(b.handlers, h)
 }
 
@@ -29,20 +29,31 @@ func (b *botEngine) PostUpdate(update telego.Message) error {
 
 // Start implements BotEngine.
 func (b *botEngine) Start() {
-	b.RegisterHandler(HandleAfterPnrSend)
-	b.RegisterHandler(HandleAfterPnrTripCodeSent)
-	b.RegisterHandler(HandleAfterProviderSent)
-	go func(){
+	
+	// b.RegisterHandler(HandleAfterTripCodeSend)
+	// b.RegisterHandler(HandleAfterTripCodePnrSent)
+	// b.RegisterHandler(HandleAfterProviderSent)
+
+	//b.RegisterHandler(HandleAfterProviderSentRequestBusNo)
+	//b.RegisterHandler(HandleAfterBusNo)
+	
+
+	b.RegisterHandler(HandleTripStateVerfication)
+	b.RegisterHandler(HandleInviteLinkMsg)
+	go func() {
 		for update := range b.msgChan {
 			i := 0
-			for i<len(b.handlers){
+			for i < len(b.handlers) {
 				h := b.handlers[i]
-				msg,err := h(update,b.stateSaver,b.admin)
-				if err != nil{
+				msg, err := h(update, b.stateSaver, b.admin)
+				if err != nil {
 					i++
 					continue
 				}
-				b.outChan <- *msg
+				for i := 0; i < len(msg); i++ {
+					b.outChan <- *msg[i]
+				}
+
 				break
 			}
 		}
@@ -57,12 +68,12 @@ type BotEngine interface {
 	Start()
 	PostUpdate(update telego.Message) error
 	OutChan() <-chan telego.SendMessageParams
-	RegisterHandler(func(telego.Message,state.Saver,admin.AdminUtils) (*telego.SendMessageParams, error))
+	RegisterHandler(func(telego.Message, state.Saver, admin.AdminUtils) ([]*telego.SendMessageParams, error))
 }
 
-func NewBotEnginer(saver state.Saver,admin admin.AdminUtils) BotEngine {
+func NewBotEnginer(saver state.Saver, admin admin.AdminUtils) BotEngine {
 	return &botEngine{
-		admin: admin,
+		admin:      admin,
 		msgChan:    make(chan telego.Message),
 		outChan:    make(chan telego.SendMessageParams),
 		stateSaver: saver,

@@ -7,6 +7,7 @@ import (
 	"github.com/judeosbert/bus_tracker_bot/admin"
 	botengine "github.com/judeosbert/bus_tracker_bot/bot_engine"
 	addpnr "github.com/judeosbert/bus_tracker_bot/handlers/add_pnr"
+	deletetrip "github.com/judeosbert/bus_tracker_bot/handlers/delete_trip"
 	"github.com/judeosbert/bus_tracker_bot/state"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -31,6 +32,30 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	bot.SetMyCommands(&telego.SetMyCommandsParams{
+		Commands:     []telego.BotCommand{
+			{
+				Command:     "/add_trip",
+				Description: "Add new trip to track",
+			},
+			{
+				Command:     "/get_location_update",
+				Description: "Request for a fresh update in addition to periodic updates.",
+			},
+			{
+				Command:     "/delete_trip",
+				Description: "Delete active trip",
+			},
+			{
+				Command:     "/list_trip",
+				Description: "List active trip",
+			},
+			{
+				Command:    "/boarded",
+				Description: "Mark as boarded the bus",
+			},
+		},
+	})
 	admin := admin.NewAdminUtils(bot)
 	botEngine := botengine.NewBotEnginer(stateSaver,admin)
 
@@ -50,17 +75,27 @@ func main() {
 		panic(err)
 	}
 	defer bh.Stop()
+
 	bh.Handle(func(bot *telego.Bot, update telego.Update) {
 		addpnr.Handler(bot,update,stateSaver)
 	},addpnr.Predicate)
+	
+	bh.Handle(func(bot *telego.Bot, update telego.Update) {
+		deletetrip.Handler(bot,update,stateSaver)
+	},deletetrip.Predicate)
+
 	bh.HandleMessage(func(bot *telego.Bot, message telego.Message) {
 		botEngine.PostUpdate(message)
 	})
+	
+	bh.HandleCallbackQuery(func(bot *telego.Bot, query telego.CallbackQuery) {
+		
+	},th.AnyCallbackQuery())
 
 	
 	go func(){
 		for msg := range botEngine.OutChan(){
-			log.Println("Sending message out from channel %+v\n",msg)
+			log.Printf("Sending message out from channel %+v\n",msg)
 			bot.SendMessage(&msg)
 		}
 	}()

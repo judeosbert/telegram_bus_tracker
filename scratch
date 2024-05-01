@@ -1,0 +1,53 @@
+"callback_query": {
+    "id": "3804170267409864701",
+    "from": {
+        "id": 885727411,
+        "is_bot": false,
+        "first_name": "jude",
+        "last_name": "the dude",
+        "username": "judeddude",
+        "language_code": "en"
+    },
+    "message": {
+        "message_id": 264,
+        "from": {
+            "id": 7073126054,
+            "is_bot": true,
+            "first_name": "BusTracker",
+            "username": "j_bus_tracker_bot"
+        },
+        "chat": {
+            "id": 885727411,
+            "first_name": "jude",
+            "last_name": "the dude",
+            "username": "judeddude",
+            "type": "private"
+        },
+        "date": 1713860122,
+        "text": "New Trip For Verification:\n PNR:1234\n TripCode:098\n Service Provider:Karnataka SRTC",
+        "reply_markup": {
+            "inline_keyboard": [
+                [
+                    {
+                        "text": "Open Service Provider Page",
+                        "url": "https://www.ksrtc.in/oprs-web/tickets/status/serviceDetails.do?pnrPrefixWithTktNo=1234&serviceCode=0&txtDepartureDate=undefined"
+                    }
+                ],
+                [
+                    {
+                        "text": "Mark as Verified",
+                        "callback_data": "verified-1234"
+                    },
+                    {
+                        "text": "Mark as Rejected",
+                        "callback_data": "rejected-1234"
+                    }
+                ]
+            ]
+        }
+    },
+    "chat_instance": "-6735744498114565546",
+    "data": "verified-1234"
+}
+}
+]

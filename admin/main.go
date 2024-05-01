@@ -23,26 +23,70 @@ func (a *adminUtils) SendForVerification(trip NewTripInfo) {
 	}
 	msg := telego.SendMessageParams{
 		ChatID: a.admin,
-		Text:   fmt.Sprintf("New Trip For Verification:\n PNR:%s\n TripCode:%s\n Service Provider:%s ", trip.Pnr, trip.TripCode,trip.ServiceProvider),
+		Text:   fmt.Sprintf("#VERIFICATION\nNew Trip For Verification:\n PNR:%s\n TripCode:%s\n Service Provider:%s ", trip.Pnr, trip.TripCode, trip.ServiceProvider),
+		LinkPreviewOptions: &telego.LinkPreviewOptions{
+			IsDisabled:       false,
+			URL:              webUrl,
+			PreferSmallMedia: true,
+			ShowAboveText:    true,
+		},
 		ReplyMarkup: &telego.InlineKeyboardMarkup{
 			InlineKeyboard: [][]telego.InlineKeyboardButton{
 				{
 					telego.InlineKeyboardButton{
-						Text:         "Open Service Provider Page",
-						URL:          webUrl,
-					},
-				},
-				{
-					telego.InlineKeyboardButton{
-						Text:         "Mark as Verified",
-						CallbackData: fmt.Sprintf("verified-%s", trip.Pnr),
-					},
-					telego.InlineKeyboardButton{
-						Text:         "Mark as Rejected",
-						CallbackData: fmt.Sprintf("rejected-%s", trip.Pnr),
+						Text: "Open Service Provider Page",
+						URL:  webUrl,
 					},
 				},
 			},
+		},
+	}
+	a.sendMessage(msg)
+
+	msg = telego.SendMessageParams{
+		ChatID: a.admin,
+		Text:   fmt.Sprintf("PNR:%s", trip.Pnr),
+		LinkPreviewOptions: &telego.LinkPreviewOptions{
+			IsDisabled:       false,
+			URL:              webUrl,
+			PreferSmallMedia: true,
+			ShowAboveText:    true,
+		},
+	}
+	a.sendMessage(msg)
+	msg = telego.SendMessageParams{
+		ChatID: a.admin,
+		Text:   fmt.Sprintf("TripCode:%s", trip.TripCode),
+		LinkPreviewOptions: &telego.LinkPreviewOptions{
+			IsDisabled:       false,
+			URL:              webUrl,
+			PreferSmallMedia: true,
+			ShowAboveText:    true,
+		},
+	}
+	a.sendMessage(msg)
+
+	msg = telego.SendMessageParams{
+		ChatID: a.admin,
+		Text:   "",
+		ReplyMarkup: &telego.ReplyKeyboardMarkup{
+			Keyboard: [][]telego.KeyboardButton{
+				{
+					telego.KeyboardButton{
+						Text: "#Verified",
+					},
+				},
+				{
+					telego.KeyboardButton{
+						Text: "#Rejected",
+					},
+				},
+			},
+			IsPersistent:          true,
+			ResizeKeyboard:        false,
+			OneTimeKeyboard:       false,
+			InputFieldPlaceholder: "",
+			Selective:             false,
 		},
 	}
 	a.sendMessage(msg)

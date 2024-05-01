@@ -17,7 +17,7 @@ func Handler(bot *telego.Bot, update telego.Update, stateSaver state.Saver) {
 	}
 
 	chatId := message.Chat.ID
-	prevState, _ := stateSaver.GetUserState(string(chatId))
+	prevState, _ := stateSaver.GetUserState(chatId)
 
 	switch prevState {
 	case nil:
@@ -29,8 +29,8 @@ func Handler(bot *telego.Bot, update telego.Update, stateSaver state.Saver) {
 }
 
 func requestForPnr(stateSaver state.Saver, bot *telego.Bot, chatId int64) {
-	stateSaver.SetUserState(string(chatId), Init{})
-	handlers.SendMessage(bot, chatId, "Send the PNR")
+	stateSaver.SetUserState(chatId, Init{})
+	handlers.SendMessage(bot, chatId, "Okay, Send Trip Code")
 }
 
 var Predicate = th.CommandEqual("add_pnr")

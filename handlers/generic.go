@@ -12,7 +12,7 @@ func SendMessage(bot *telego.Bot, chatId int64,msg string) error {
 			ChatID: telego.ChatID{
 				ID: chatId,
 			},
-			Text: "Okay,Send PNR",
+			Text: msg,
 		},
 	)
 	if err != nil {
