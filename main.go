@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/judeosbert/bus_tracker_bot/admin"
@@ -15,19 +16,8 @@ import (
 )
 
 func main() {
-	// 	r := gin.Default()
-	// 	r.POST("/", func(ctx *gin.Context) {
-	// 		body, _ := io.ReadAll(ctx.Request.Body)
-	// 		fmt.Printf("incoming body   %s",string(body))
-
-	// 		ctx.Request.Body = io.NopCloser(bytes.NewReader(body))
-	// 		telegram.HandleIncomingMessage(ctx)
-	// 	})
-	// 	r.Run()
-
-	stateSaver := state.NewStateSaver()
-	
-	botToken := "7073126054:AAEI729OK0391qRMrXzpojWqB-5ROuwPi_I"
+	stateSaver := state.NewStateSaver()	
+	botToken := os.Getenv("TELEGO_BOT_TOKEN")
 	
 	bot, err := telego.NewBot(botToken, telego.WithDefaultDebugLogger())
 	if err != nil {

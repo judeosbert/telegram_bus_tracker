@@ -6,7 +6,10 @@
         "type": "go",
         "request": "launch",
         "mode": "debug",
-        "program": "${workspaceFolder}/main.go"
+        "program": "${workspaceFolder}/main.go",
+        "env": {
+          "TELEGO_BOT_TOKEN": "7073126054:AAEI729OK0391qRMrXzpojWqB-5ROuwPi_I"
+        }
       }
     ]
   }
