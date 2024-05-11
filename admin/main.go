@@ -3,93 +3,67 @@ package admin
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/judeosbert/bus_tracker_bot/handlers"
+	"github.com/judeosbert/bus_tracker_bot/state"
+	"github.com/judeosbert/bus_tracker_bot/utils"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
 type adminUtils struct {
-	admin telego.ChatID
-	bot   *telego.Bot
+	groupAssigner GroupAssigner
+	admin         telego.ChatID
+	bot           *telego.Bot
+	saver         state.Saver
 }
 
-// SendForVerification implements AdminUtils.
-func (a *adminUtils) SendForVerification(trip NewTripInfo) {
-	var webUrl string
-	if trip.ServiceProvider == "Kerala SRTC" {
-		webUrl = fmt.Sprintf("https://onlineksrtcswift.com/status/booking/%s?u=true", trip.Pnr)
-	} else {
-		webUrl = fmt.Sprintf("https://www.ksrtc.in/oprs-web/tickets/status/serviceDetails.do?pnrPrefixWithTktNo=%s&serviceCode=0&txtDepartureDate=undefined", trip.Pnr)
-	}
-	msg := telego.SendMessageParams{
-		ChatID: a.admin,
-		Text:   fmt.Sprintf("#VERIFICATION\nNew Trip For Verification:\n PNR:%s\n TripCode:%s\n Service Provider:%s ", trip.Pnr, trip.TripCode, trip.ServiceProvider),
-		LinkPreviewOptions: &telego.LinkPreviewOptions{
-			IsDisabled:       false,
-			URL:              webUrl,
-			PreferSmallMedia: true,
-			ShowAboveText:    true,
-		},
-		ReplyMarkup: &telego.InlineKeyboardMarkup{
-			InlineKeyboard: [][]telego.InlineKeyboardButton{
-				{
-					telego.InlineKeyboardButton{
-						Text: "Open Service Provider Page",
-						URL:  webUrl,
-					},
-				},
-			},
-		},
-	}
-	a.sendMessage(msg)
+// DeleteMessages implements AdminUtils.
+func (a *adminUtils) DeleteMessages(chatId int64, messageId []int) {
+	a.bot.DeleteMessages(&telego.DeleteMessagesParams{
+		ChatID:     tu.ID(chatId),
+		MessageIDs: messageId,
+	})
+}
 
-	msg = telego.SendMessageParams{
-		ChatID: a.admin,
-		Text:   fmt.Sprintf("PNR:%s", trip.Pnr),
-		LinkPreviewOptions: &telego.LinkPreviewOptions{
-			IsDisabled:       false,
-			URL:              webUrl,
-			PreferSmallMedia: true,
-			ShowAboveText:    true,
-		},
-	}
-	a.sendMessage(msg)
-	msg = telego.SendMessageParams{
-		ChatID: a.admin,
-		Text:   fmt.Sprintf("TripCode:%s", trip.TripCode),
-		LinkPreviewOptions: &telego.LinkPreviewOptions{
-			IsDisabled:       false,
-			URL:              webUrl,
-			PreferSmallMedia: true,
-			ShowAboveText:    true,
-		},
-	}
-	a.sendMessage(msg)
+// OnNewGroup implements AdminUtils.
+func (a *adminUtils) OnNewGroup(link int64) {
+	go func() {
+		a.groupAssigner.OnNewGroup(link)
+	}()
+}
 
-	msg = telego.SendMessageParams{
-		ChatID: a.admin,
-		Text:   "",
-		ReplyMarkup: &telego.ReplyKeyboardMarkup{
-			Keyboard: [][]telego.KeyboardButton{
-				{
-					telego.KeyboardButton{
-						Text: "#Verified",
-					},
-				},
-				{
-					telego.KeyboardButton{
-						Text: "#Rejected",
-					},
-				},
-			},
-			IsPersistent:          true,
-			ResizeKeyboard:        false,
-			OneTimeKeyboard:       false,
-			InputFieldPlaceholder: "",
-			Selective:             false,
-		},
+// AddToTripGroup implements AdminUtils.
+func (a *adminUtils) AddToTripGroup(trip NewTripInfo, chatID telego.ChatID) {
+	grp, err := a.saver.GetTripGroup(utils.TripHash(trip.BusNo, trip.Doj))
+	if err != nil {
+		handlers.SendMessage(a.bot, chatID.ID, "Error getting group")
+		return
 	}
-	a.sendMessage(msg)
+	link, err := a.bot.CreateChatInviteLink(&telego.CreateChatInviteLinkParams{
+		ChatID:             tu.ID(grp),
+		Name:               "Welcome to the group",
+		ExpireDate:         time.Now().AddDate(0, 0, 1).Unix(),
+		MemberLimit:        1,
+		CreatesJoinRequest: false,
+	})
+	if err != nil {
+		handlers.SendMessage(a.bot, chatID.ID, "Error creating group link. Try again later.")
+		return
+	}
+	handlers.SendMessage(a.bot, chatID.ID, fmt.Sprintf("Join this group for updates on your on %s bus %s\n%s", trip.Doj.Format("02/06/2024"), trip.BusNo, link.InviteLink))
+}
+
+// SubmitForNewGroup implements AdminUtils.
+func (a *adminUtils) SubmitForNewGroup(trip NewTripInfo) {
+	// Send message to admin
+	a.groupAssigner.AssignGroup(trip)
+	params := telego.SendMessageParams{
+		ChatID: a.admin,
+		Text:   "Need new group!",
+	}
+	a.sendMessage(params)
 }
 
 func (a *adminUtils) sendMessage(params telego.SendMessageParams) error {
@@ -105,12 +79,50 @@ func (a *adminUtils) sendMessage(params telego.SendMessageParams) error {
 }
 
 type AdminUtils interface {
-	SendForVerification(trip NewTripInfo)
+	AddToTripGroup(trip NewTripInfo, chatID telego.ChatID)
+	SubmitForNewGroup(trip NewTripInfo)
+	OnNewGroup(link int64)
+	DeleteMessages(chatId int64, messageId []int)
 }
 
-func NewAdminUtils(bot *telego.Bot) AdminUtils {
-	return &adminUtils{
-		bot:   bot,
-		admin: tu.ID(885727411),
+func NewAdminUtils(bot *telego.Bot, saver state.Saver) AdminUtils {
+	groupAssigner := NewGroupAssigner()
+	adminUtils := &adminUtils{
+		saver:         saver,
+		groupAssigner: groupAssigner,
+		bot:           bot,
+		admin:         tu.ID(885727411),
 	}
+	go func() {
+		for group := range groupAssigner.ResultChan() {
+			saver.SetTripGroup(utils.TripHash(group.NewTripInfo.BusNo, group.NewTripInfo.Doj), group.GroupId)
+			bot.SetChatTitle(&telego.SetChatTitleParams{
+				ChatID: telego.ChatID{
+					ID: group.GroupId,
+				},
+				Title: fmt.Sprintf("%s on %s", group.NewTripInfo.BusNo, group.NewTripInfo.Doj.Format("02/01/2006")),
+			})
+			msg, _ := bot.SendMessage(&telego.SendMessageParams{
+				ChatID: telego.ChatID{
+					ID: group.GroupId,
+				},
+				Text: "This is a public group. Be friendly in the chats. No spamming or sharing of inappropriate content. We are not responsible for any damages caused by the group members.",
+			})
+			bot.PinChatMessage(&telego.PinChatMessageParams{
+				ChatID: telego.ChatID{
+					ID: group.GroupId,
+				},
+				MessageID:           msg.GetMessageID(),
+				DisableNotification: false,
+			})
+			obs := adminUtils.saver.GetTripObservers(utils.TripHash(group.NewTripInfo.BusNo, group.NewTripInfo.Doj))
+			for _, ob := range obs {
+				adminUtils.AddToTripGroup(NewTripInfo{
+					Doj:   group.Doj,
+					BusNo: group.BusNo,
+				}, tu.ID(ob))
+			}
+		}
+	}()
+	return adminUtils
 }

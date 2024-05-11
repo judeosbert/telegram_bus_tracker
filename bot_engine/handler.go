@@ -5,196 +5,151 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/judeosbert/bus_tracker_bot/admin"
 	addpnr "github.com/judeosbert/bus_tracker_bot/handlers/add_pnr"
+	"github.com/judeosbert/bus_tracker_bot/handlers/parser"
+	"github.com/judeosbert/bus_tracker_bot/handlers/start"
 	"github.com/judeosbert/bus_tracker_bot/state"
+	"github.com/judeosbert/bus_tracker_bot/utils"
 	"github.com/mymmrac/telego"
+	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func HandleAfterTripCodeSend(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
+func HandleAfterServiceProvideSelected(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
 	chatId := message.Chat.ID
-	tripCode := message.Text
-	prevTripState, _ := saver.GetTripState(tripCode)
-	if prevTripState != nil {
-		switch prevTripState := prevTripState.(type) {
-		case addpnr.SubmittedForVerification:
-			trip, err := saver.GetActiveTrip(chatId)
-			if err == nil {
-				return []*telego.SendMessageParams{
-					{
-						ChatID: telego.ChatID{
-							ID: chatId,
-						},
-						Text: fmt.Sprintf("You are already part of %s. Either /delete_trip to delete the active trip or wait until its complete.", trip),
-					},
-				}, nil
-			}
-			saver.SetActiveTrip(chatId, tripCode)
-			saver.AddTripObserver(tripCode, chatId)
-			return []*telego.SendMessageParams{{
-				ChatID: telego.ChatID{
-					ID: chatId,
-				},
-				Text: "The trip is submitted for verification. You will be notified",
-			}}, nil
-		case admin.TripStateValidation:
-			if prevTripState.Status == admin.STATUS_REJECTED_TRIP_VERIFICATION {
-				return []*telego.SendMessageParams{{
-					ChatID: telego.ChatID{
-						ID: chatId,
-					},
-					Text: "The tripcode was rejected for incorrect data. ",
-				}}, nil
-			}
-
-			if prevTripState.Status == admin.STATUS_VERIFIED_TRIP_VERIFICATION {
-				trip, err := saver.GetActiveTrip(chatId)
-				if err == nil {
-					return []*telego.SendMessageParams{
-						{
-							ChatID: telego.ChatID{
-								ID: chatId,
-							},
-							Text: fmt.Sprintf("You are already part of %s. Either /delete_trip to delete the active trip or wait until its complete.", trip),
-						},
-					}, nil
-				}
-				saver.SetActiveTrip(chatId, tripCode)
-				saver.AddTripObserver(tripCode, chatId)
-				return []*telego.SendMessageParams{{
-					ChatID: telego.ChatID{
-						ID: chatId,
-					},
-					Text: "The trip is verified. The trip group will be shared soon. You will be notified",
-				}}, nil
-			}
-
-		case admin.TripStateVerifiedWithLink:
-			return []*telego.SendMessageParams{{
-				ChatID: telego.ChatID{
-					ID: chatId,
-				},
-				Text: fmt.Sprintf("The trip is verified. Join this group for update %s", prevTripState.InviteLink),
-			}}, nil
-
-		}
-	}
 	prevState, err := saver.GetUserState(chatId)
 	if err != nil {
-		return nil, errors.New("wrong state")
+		return nil, errors.New("No previous state")
 	}
 	switch prevState.(type) {
 	case addpnr.Init:
-		saver.SetUserState(chatId, addpnr.SaveTripCode{
-			TripCode: tripCode,
-		})
-		return []*telego.SendMessageParams{{
-			ChatID: telego.ChatID{
-				ID: chatId,
-			},
-			Text: "What is your pnr?",
-		}}, nil
-
+		break
 	default:
-		return nil, errors.New("wrong state")
+		return nil, errors.New("Invalid previous state")
 	}
-}
 
-func HandleAfterTripCodePnrSent(message telego.Message, saver state.Saver, admin admin.AdminUtils) ([]*telego.SendMessageParams, error) {
-	chatId := message.Chat.ID
-	prevState, err := saver.GetUserState(chatId)
-	if err != nil {
-		return nil, errors.New("wrong state")
-	}
-	switch prevState := prevState.(type) {
-	case addpnr.SaveTripCode:
-		pnr := message.Text
-		saver.SetUserState(chatId, addpnr.SaveTripCodePnr{
-			Pnr:      pnr,
-			TripCode: prevState.TripCode,
-		})
+	msg := message.Text
+	switch msg {
+	case "Kerala SRTC":
+		saver.SetUserState(chatId, addpnr.ServiceProviderSet{Provider: "Kerala SRTC"})
+	case "Karnataka SRTC":
+		saver.SetUserState(chatId, addpnr.ServiceProviderSet{Provider: "Karnataka SRTC"})
+	default:
+
 		return []*telego.SendMessageParams{
 			{
-				ChatID: telego.ChatID{
-					ID: chatId,
-				},
-				Text:            "Which bus service have you booked?",
-				ReplyParameters: &telego.ReplyParameters{},
-				ReplyMarkup: &telego.ReplyKeyboardMarkup{
-					Keyboard: [][]telego.KeyboardButton{
-						{
-							telego.KeyboardButton{
-								Text: "Kerala SRTC",
-							},
-							telego.KeyboardButton{
-								Text: "Karnataka SRTC",
-							},
-						},
-					},
-					IsPersistent:          false,
-					ResizeKeyboard:        false,
-					OneTimeKeyboard:       true,
-					InputFieldPlaceholder: "Select your bus service provider",
-					Selective:             false,
-				},
+				ChatID: tu.ID(chatId),
+				Text:   "Sorry invalid service provider. Try again. Should be Kerala SRTC or Karnataka SRTC",
 			},
 		}, nil
-
-	default:
-		return nil, errors.New("wrong state")
 	}
+
+	return []*telego.SendMessageParams{
+		{
+			ChatID: tu.ID(chatId),
+			Text:   "Okay, send the bus number.",
+		},
+	}, nil
 }
 
-func HandleAfterProviderSent(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
+func HandleAfterBusNoSent(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
 	chatId := message.Chat.ID
 	prevState, err := saver.GetUserState(chatId)
 	if err != nil {
-		return nil, errors.New("wrong state")
+		return nil, errors.New("No previous state")
 	}
 	switch prevState := prevState.(type) {
-	case addpnr.SaveTripCodePnr:
-		provider := message.Text
-		saver.SetUserState(chatId, addpnr.SaveTripCodePnrProvider{
-			Pnr:             prevState.Pnr,
-			TripCode:        prevState.TripCode,
-			ServiceProvider: provider,
-		})
-		adminUtils.SendForVerification(admin.NewTripInfo{
-			ServiceProvider: provider,
-			TripCode:        prevState.TripCode,
-			Pnr:             prevState.Pnr,
-		})
-
-		saver.SetTripState(prevState.TripCode, addpnr.SubmittedForVerification{
-			Pnr:             prevState.Pnr,
-			TripCode:        prevState.TripCode,
-			ServiceProvider: provider,
-		})
-		trip, err := saver.GetActiveTrip(chatId)
-		if err == nil {
+	case addpnr.ServiceProviderSet:
+		msg := message.Text
+		if len(msg) == 0 {
 			return []*telego.SendMessageParams{
 				{
-					ChatID: telego.ChatID{
-						ID: chatId,
-					},
-					Text: fmt.Sprintf("You are already part of %s. Either /delete_trip to delete the active trip or wait until its complete.", trip),
+					ChatID: tu.ID(chatId),
+					Text:   "Invalid bus number. Try again",
 				},
 			}, nil
 		}
-		saver.SetActiveTrip(chatId, prevState.TripCode)
-		saver.AddTripObserver(prevState.TripCode, chatId)
-
-		return []*telego.SendMessageParams{{
-			ChatID: telego.ChatID{
-				ID: chatId,
+		msg = strings.ToUpper(msg)
+		saver.SetUserState(chatId, addpnr.ServiceProviderBusNoSet{BusNo: msg, Provider: prevState.Provider})
+		return []*telego.SendMessageParams{
+			{
+				ChatID: tu.ID(chatId),
+				Text:   "Okay, when is the bus starting? Send the date in the format dd/mm/yyyy",
 			},
-			Text: "Okay, your trip and pnr will be verifed and added. You will be notified.",
-		}}, nil
+		}, nil
+	default:
+		return nil, errors.New("Invalid previous state")
+	}
+}
+
+func HandleAfterDojSent(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
+	chatId := message.Chat.ID
+	prevState, err := saver.GetUserState(chatId)
+	if err != nil {
+		return nil, errors.New("No previous state")
+	}
+	switch prevState := prevState.(type) {
+	case addpnr.ServiceProviderBusNoSet:
+		msg := message.Text
+		if len(msg) == 0 {
+			return []*telego.SendMessageParams{
+				{
+					ChatID: tu.ID(chatId),
+					Text:   "Invalid date. Try again",
+				},
+			}, nil
+		}
+		doj, err := time.Parse("02/01/2006", msg)
+		today, _ := time.Parse("02/01/2006", time.Now().AddDate(0, 0, -1).Format("02/01/2006"))
+		if doj.Before(today) {
+			return []*telego.SendMessageParams{
+				{
+					ChatID: tu.ID(chatId),
+					Text:   "Invalid date. Date should be in the future.",
+				},
+			}, nil
+		}
+		if err != nil {
+			return []*telego.SendMessageParams{
+				{
+					ChatID: tu.ID(chatId),
+					Text:   err.Error(),
+				},
+			}, nil
+		}
+		return addOrCreateGroup(adminUtils, saver, prevState.BusNo, doj, chatId)
 
 	default:
-		return nil, errors.New("wrong state")
+		return nil, errors.New("invalid previous state")
 	}
+}
+
+func addOrCreateGroup(adminUtils admin.AdminUtils, saver state.Saver, busNo string, doj time.Time, chatId int64) ([]*telego.SendMessageParams, error) {
+	//Check if a group exists for this trip.
+	_, err := saver.GetTripGroup(utils.TripHash(busNo, doj))
+	if err == nil {
+		saver.AddTripObserver(utils.TripHash(busNo, doj), chatId)
+		adminUtils.AddToTripGroup(admin.NewTripInfo{
+			Doj:   doj,
+			BusNo: busNo,
+		}, tu.ID(chatId))
+		return []*telego.SendMessageParams{}, nil
+	}
+
+	saver.AddTripObserver(utils.TripHash(busNo, doj), chatId)
+	adminUtils.SubmitForNewGroup(admin.NewTripInfo{
+		Doj:   doj,
+		BusNo: busNo,
+	})
+	saver.RemoveUserState(chatId)
+	return []*telego.SendMessageParams{
+		{
+			ChatID: tu.ID(chatId),
+			Text:   "Okay, you will be notified when the group is created.Then join the group for updates.",
+		},
+	}, nil
 }
 
 func HandleInviteLinkMsg(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
@@ -334,19 +289,95 @@ func HandleGroupChatMsgCommands(message telego.Message, saver state.Saver, admin
 	if len(tripCode) == 0 {
 		return nil, errors.New("trip code not found in group title")
 	}
-	chatId := message.Chat.ID
-	saver.SetTripGroup(tripCode, chatId)
+	// saver.SetTripGroup(tripCode, chatId)
 
 	//supported commands get update.
-	ps := strings.Split(message.Text, "@")
-	command := ps[0]
-	switch command {
-	case "/get_location_update":
-		return getFreshLocation(tripCode, chatId)
-	}
 	return nil, nil
 }
 
-func getFreshLocation(tripCode string, chatId int64) ([]*telego.SendMessageParams, error) {
-	return nil, nil
+func AdminHandleNewGroupHashtag(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
+	if message.From.ID != 885727411 {
+		return nil, errors.New("not an admin message")
+	}
+	if message.Entities == nil {
+		return nil, errors.New("no entities")
+	}
+	var hasHashtag = false
+	for i := 0; i < len(message.Entities); i++ {
+		e := message.Entities[i]
+		if e.Type == "hashtag" {
+			hasHashtag = true
+			break
+		}
+	}
+	if !hasHashtag {
+		return nil, errors.New("not a hashtag message")
+	}
+	text := message.Text
+	if !strings.Contains(text, "#newgroup") {
+		return nil, errors.New("invalid hashtag")
+	}
+	chatId := message.Chat.ID
+	adminUtils.OnNewGroup(chatId)
+	id := message.MessageID
+	adminUtils.DeleteMessages(chatId, []int{id})
+
+	return []*telego.SendMessageParams{
+		{
+			ChatID: tu.ID(885727411),
+			Text:   "Thanks! New group used.",
+		},
+	}, nil
+}
+
+func HandleAfterTicketSent(message telego.Message, saver state.Saver, adminUtils admin.AdminUtils) ([]*telego.SendMessageParams, error) {
+	chatId := message.Chat.ID
+	prevState, err := saver.GetUserState(chatId)
+	if err != nil {
+		return nil, errors.New("No previous state")
+	}
+	switch prevState.(type) {
+	case start.RequestTicket:
+		msg := message.Text
+		if len(msg) == 0 {
+			return []*telego.SendMessageParams{
+				{
+					ChatID: tu.ID(chatId),
+					Text:   "Invalid ticket. Try again",
+				},
+			}, nil
+		}
+
+		t, err := parser.NewTicketParser().ParseTicket(msg)
+		if err != nil {
+			return []*telego.SendMessageParams{
+				{
+					ChatID: tu.ID(chatId),
+					Text:   "Invalid ticket. Try again",
+				},
+			}, nil
+		}
+		if t.ServiceProvider == "Kerala SRTC" {
+			saver.SetUserState(chatId, addpnr.ServiceProviderBusNoSet{
+				BusNo:    t.BusNumber,
+				Provider: t.ServiceProvider,
+			})
+			return []*telego.SendMessageParams{
+				{
+					ChatID: tu.ID(chatId),
+					Text:   "Okay, which date is the bus starting? Send dd/mm/yyyy format",
+				},
+			}, nil
+		} else {
+			saver.SetUserState(chatId, addpnr.ServiceProviderBusNoDojSet{
+				BusNo:    t.BusNumber,
+				Provider: t.ServiceProvider,
+				Doj:      t.Doj,
+			})
+			return addOrCreateGroup(adminUtils, saver, t.BusNumber, t.Doj, chatId)
+		}
+
+	default:
+		return nil, errors.New("Invalid previous state")
+	}
 }

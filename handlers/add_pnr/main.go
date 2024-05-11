@@ -21,16 +21,41 @@ func Handler(bot *telego.Bot, update telego.Update, stateSaver state.Saver) {
 
 	switch prevState {
 	case nil:
-		requestForPnr(stateSaver, bot, chatId)
+		requestForBusProvider(stateSaver, bot, chatId)
 	default:
+		stateSaver.SetUserState(chatId, nil)
 		handlers.SendMessage(bot, chatId, "Error. Start over with commands")
 	}
 
 }
 
-func requestForPnr(stateSaver state.Saver, bot *telego.Bot, chatId int64) {
+func requestForBusProvider(stateSaver state.Saver, bot *telego.Bot, chatId int64) {
+
 	stateSaver.SetUserState(chatId, Init{})
-	handlers.SendMessage(bot, chatId, "Okay, Send Trip Code")
+	msg := &telego.SendMessageParams{
+		ChatID:               telego.ChatID{
+			ID:       chatId,
+		},
+		Text:                 "Okay, Select your bus service provider",
+		ReplyMarkup: &telego.ReplyKeyboardMarkup{
+			Keyboard:              [][]telego.KeyboardButton{
+				{
+					{
+						Text: "Kerala SRTC",
+					},
+					{
+						Text: "Karnataka SRTC",
+					},
+				},
+			},
+			IsPersistent:          false,
+			ResizeKeyboard:        false,
+			OneTimeKeyboard:       true,
+			InputFieldPlaceholder: "Select your bus service provider",
+			Selective:             false,
+		},
+	}
+	bot.SendMessage(msg)
 }
 
-var Predicate = th.CommandEqual("add_pnr")
+var Predicate = th.CommandEqual("add_trip_manual")

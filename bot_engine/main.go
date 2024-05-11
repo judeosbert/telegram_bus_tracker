@@ -29,15 +29,16 @@ func (b *botEngine) PostUpdate(update telego.Message) error {
 
 // Start implements BotEngine.
 func (b *botEngine) Start() {
-	
+
 	// b.RegisterHandler(HandleAfterTripCodeSend)
 	// b.RegisterHandler(HandleAfterTripCodePnrSent)
 	// b.RegisterHandler(HandleAfterProviderSent)
 
-	//b.RegisterHandler(HandleAfterProviderSentRequestBusNo)
-	//b.RegisterHandler(HandleAfterBusNo)
-	
-
+	b.RegisterHandler(HandleAfterServiceProvideSelected)
+	b.RegisterHandler(HandleAfterBusNoSent)
+	b.RegisterHandler(HandleAfterDojSent)
+	b.RegisterHandler(HandleAfterTicketSent)
+	b.RegisterHandler(AdminHandleNewGroupHashtag)
 	b.RegisterHandler(HandleTripStateVerfication)
 	b.RegisterHandler(HandleInviteLinkMsg)
 	go func() {

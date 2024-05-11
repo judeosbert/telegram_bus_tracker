@@ -15,9 +15,15 @@ type saver struct {
 	activeTrip          map[int64]string
 }
 
+// RemoveUserState implements Saver.
+func (s *saver) RemoveUserState(user int64) error {
+	delete(s.userState, user)
+	return nil
+}
+
 // DeleteActiveTrip implements Saver.
 func (s *saver) DeleteActiveTrip(user int64) error {
-	delete(s.activeTrip,user)
+	delete(s.activeTrip, user)
 	return nil
 }
 
@@ -41,9 +47,6 @@ func (s *saver) GetTripGroup(tripCode string) (int64, error) {
 	v, ok := s.tripGroup[tripCode]
 	if !ok {
 		return -1, errors.New("no group found")
-	}
-	if v != 0 {
-		return -1, errors.New("group found is empty")
 	}
 	return v, nil
 }
@@ -154,6 +157,7 @@ func (s *saver) getTripMutex(tripCode string) *sync.Mutex {
 
 type Saver interface {
 	SetUserState(user int64, state interface{}) error
+	RemoveUserState(user int64) error
 	GetUserState(user int64) (interface{}, error)
 	ClearUserState(user int64) error
 	AddTripObserver(tripCode string, user int64) error
@@ -174,5 +178,7 @@ func NewStateSaver() Saver {
 		tripMutex:           map[string]*sync.Mutex{},
 		globalTripState:     map[string]interface{}{},
 		globalTripObservers: map[string][]int64{},
+		tripGroup:           map[string]int64{},
+		activeTrip:          map[int64]string{},
 	}
 }

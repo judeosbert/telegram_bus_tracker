@@ -1,9 +1,15 @@
 package admin
 
+import "time"
+
 type NewTripInfo struct {
-	ServiceProvider string
-	TripCode        string
-	Pnr             string
+	Doj   time.Time
+	BusNo string
+}
+
+type NewGroupId struct {
+	GroupId int64
+	NewTripInfo
 }
 
 type TripStateVerifiedCallback struct {
@@ -35,8 +41,8 @@ func NewStateTripRejected(pnr string, tripCode string) TripStateValidation {
 }
 
 type TripStateVerifiedWithLink struct {
-	Pnr      string `json:"pnr"`
-	TripCode string `json:"trip_code"`
+	Pnr        string `json:"pnr"`
+	TripCode   string `json:"trip_code"`
 	InviteLink string `json:"link"`
 }
 

@@ -8,6 +8,7 @@ import (
 	botengine "github.com/judeosbert/bus_tracker_bot/bot_engine"
 	addpnr "github.com/judeosbert/bus_tracker_bot/handlers/add_pnr"
 	deletetrip "github.com/judeosbert/bus_tracker_bot/handlers/delete_trip"
+	"github.com/judeosbert/bus_tracker_bot/handlers/start"
 	"github.com/judeosbert/bus_tracker_bot/state"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -35,28 +36,16 @@ func main() {
 	bot.SetMyCommands(&telego.SetMyCommandsParams{
 		Commands:     []telego.BotCommand{
 			{
-				Command:     "/add_trip",
-				Description: "Add new trip to track",
+				Command:     "/start",
+				Description: "Copy paste ticket",
 			},
 			{
-				Command:     "/get_location_update",
-				Description: "Request for a fresh update in addition to periodic updates.",
-			},
-			{
-				Command:     "/delete_trip",
-				Description: "Delete active trip",
-			},
-			{
-				Command:     "/list_trip",
-				Description: "List active trip",
-			},
-			{
-				Command:    "/boarded",
-				Description: "Mark as boarded the bus",
+				Command:     "/add_trip_manual",
+				Description: "Manually Add a new Trip",
 			},
 		},
 	})
-	admin := admin.NewAdminUtils(bot)
+	admin := admin.NewAdminUtils(bot,stateSaver)
 	botEngine := botengine.NewBotEnginer(stateSaver,admin)
 
 	updates, err := bot.UpdatesViaLongPolling(
@@ -79,6 +68,10 @@ func main() {
 	bh.Handle(func(bot *telego.Bot, update telego.Update) {
 		addpnr.Handler(bot,update,stateSaver)
 	},addpnr.Predicate)
+	
+	bh.Handle(func(bot *telego.Bot, update telego.Update) {
+		start.Handler(bot,update,stateSaver)
+	},start.Predicate)
 	
 	bh.Handle(func(bot *telego.Bot, update telego.Update) {
 		deletetrip.Handler(bot,update,stateSaver)
