@@ -54,16 +54,16 @@ func main() {
 		defer bot.StopLongPolling()
 	} else {
 		_ = bot.SetWebhook(&telego.SetWebhookParams{
-			URL: "https://telegrambustracker-production.up.railway.app/bot" + bot.Token(),
+			URL: "https://telegrambustracker-production.up.railway.app/bot",
 		})
 
 		info, _ := bot.GetWebhookInfo()
 		fmt.Printf("Webhook Info: %+v\n", info)
 
-		updates, _ = bot.UpdatesViaWebhook("/bot" + bot.Token())
+		updates, _ = bot.UpdatesViaWebhook("/bot")
 
 		go func() {
-			_ = bot.StartWebhook("0.0.0.0:443")
+			_ = bot.StartWebhook("localhost:443")
 		}()
 
 		// Stop reviving updates from update channel and shutdown webhook server
