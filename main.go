@@ -24,18 +24,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	bot.SetMyCommands(&telego.SetMyCommandsParams{
-		Commands: []telego.BotCommand{
-			{
-				Command:     "/start",
-				Description: "Copy paste ticket",
+	err = nil
+	for err != nil {
+		err = bot.SetMyCommands(&telego.SetMyCommandsParams{
+			Commands: []telego.BotCommand{
+				{
+					Command:     "/start",
+					Description: "Copy paste ticket",
+				},
+				{
+					Command:     "/add_trip_manual",
+					Description: "Manually Add a new Trip",
+				},
 			},
-			{
-				Command:     "/add_trip_manual",
-				Description: "Manually Add a new Trip",
-			},
-		},
-	})
+		})
+	}
+
 	admin := admin.NewAdminUtils(bot, stateSaver)
 	botEngine := botengine.NewBotEnginer(stateSaver, admin)
 
