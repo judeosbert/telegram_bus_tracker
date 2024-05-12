@@ -60,7 +60,10 @@ func main() {
 		info, _ := bot.GetWebhookInfo()
 		fmt.Printf("Webhook Info: %+v\n", info)
 
-		updates, _ = bot.UpdatesViaWebhook("/bot")
+		updates, err = bot.UpdatesViaWebhook("/bot")
+		if err != nil {
+			log.Println("Error in updating via webhook", err)
+		}
 
 		go func() {
 			_ = bot.StartWebhook("localhost:443")
