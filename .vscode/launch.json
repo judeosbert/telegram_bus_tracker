@@ -8,7 +8,8 @@
         "mode": "debug",
         "program": "${workspaceFolder}/main.go",
         "env": {
-          "TELEGO_BOT_TOKEN": "7073126054:AAEI729OK0391qRMrXzpojWqB-5ROuwPi_I"
+          "TELEGO_BOT_TOKEN": "7073126054:AAEI729OK0391qRMrXzpojWqB-5ROuwPi_I",
+          "ENV":"prod"
         }
       }
     ]
